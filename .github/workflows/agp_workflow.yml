@@ -1,0 +1,112 @@
+# Sonatype Guide — Agentic Patches (AGP) Workflow
+# Learn more: https://guide.sonatype.com
+# File: .github/workflows/agp_workflow.yml
+
+name: "Sonatype Guide - Agentic Patches"
+
+on:
+  # Weekly automated scan every Monday at 09:00 UTC
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # Manual trigger with configurable inputs
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Scan mode (full, quick, security-only)'
+        required: false
+        default: 'full'
+        type: string
+      vulnerabilities:
+        description: 'Comma-separated CVE IDs to target (optional)'
+        required: false
+        type: string
+      verbose:
+        description: 'Enable verbose logging for debugging'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write      # Required to create branches and commits
+  pull-requests: write # Required to create PRs
+  # id-token: write   # Uncomment only if using AWS Bedrock OIDC
+
+concurrency:
+  group: "agp-workflow"
+  cancel-in-progress: false
+
+jobs:
+  agp:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: AWS OIDC credentials (for Bedrock users)
+      # Uncomment this step if using AWS Bedrock instead of Anthropic API
+      # - name: Configure AWS credentials (OIDC)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      #     aws-region: us-east-1
+
+      # Step 3: Private registry authentication
+      # Uncomment and configure if using a private PyPI registry (Nexus, Artifactory, CodeArtifact)
+      # - name: Configure pip for private PyPI registry
+      #   run: |
+      #     mkdir -p ~/.pip
+      #     echo "[global]" > ~/.pip/pip.conf
+      #     echo "index-url = https://${{ secrets.PRIVATE_PYPI_TOKEN }}@pypi.example.com/simple" >> ~/.pip/pip.conf
+      #     echo "trusted-host = pypi.example.com" >> ~/.pip/pip.conf
+
+      # Step 4: Sonatype AGP Action
+      - name: Run Sonatype Agentic Patches
+        uses: sonatype/agp-action@v1
+        with:
+          mode: ${{ inputs.mode || 'full' }}
+          vulnerabilities: ${{ inputs.vulnerabilities }}
+          create-pr: 'true'
+          dry-run: 'false'
+          verbose: ${{ inputs.verbose || 'false' }}
+          # Docker registry configuration (always active for Sonatype container images)
+          image-tag: go-lang-ecosystem-support-in-docker-image-5-28e4fed1
+          docker-registry: sonatype.repo.sonatype.app/docker-all
+          # docker-username: ${{ secrets.DOCKER_USERNAME }}  # Uncomment for private Docker registry
+          # docker-password: ${{ secrets.DOCKER_PASSWORD }}  # Uncomment for private Docker registry
+          # npmrc-content: ${{ secrets.NPMRC_CONTENT }}  # Uncomment for npm projects with private registry
+          # Maven settings – uncomment if using private Maven repositories
+          # maven-settings-xml: |
+          #   <settings>
+          #     <servers>
+          #       <server>
+          #         <id>private-releases</id>
+          #         <username>${env.MAVEN_USERNAME}</username>
+          #         <password>${env.MAVEN_PASSWORD}</password>
+          #       </server>
+          #     </servers>
+          #     <mirrors>
+          #       <mirror>
+          #         <id>nexus-public</id>
+          #         <mirrorOf>central</mirrorOf>
+          #         <url>https://your-registry.example.com/repository/maven-public/</url>
+          #       </mirror>
+          #     </mirrors>
+          #   </settings>
+          # PyPI settings – uncomment if using private Python registries
+          # pip-index-url: https://pypi.org/simple
+          # pip-extra-index-url: https://${{ secrets.PRIVATE_PYPI_TOKEN }}@pypi.example.com/simple
+
+        env:
+          # Anthropic API key (active)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # AWS_BEDROCK_REGION: us-east-1  # Uncomment if using AWS Bedrock instead
+          # Guide API token for dashboard tracking
+          AGP_API_TOKEN: ${{ secrets.AGP_API_TOKEN }}
+          AGP_API_URL: https://api.guide.sonatype.com
+          # GitHub token - using default since organization doesn't restrict it
+          GITHUB_TOKEN: ${{ github.token }}
+          # GITHUB_TOKEN: ${{ secrets.AGP_GITHUB_TOKEN }}  # Uncomment if default token is restricted

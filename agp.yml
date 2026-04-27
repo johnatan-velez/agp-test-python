@@ -1,0 +1,113 @@
+# Sonatype Guide — Agentic Patches Configuration
+# Learn more: https://guide.sonatype.com
+# File: agp.yml
+
+version: "1"
+
+# Ignore paths and packages AGP should skip
+ignore:
+  # Paths to exclude from scanning (Python ecosystem)
+  paths:
+    - "**/.venv/**"
+    - "**/venv/**"
+    - "**/__pycache__/**"
+    - "**/site-packages/**"
+    - "**/.pytest_cache/**"
+    - "**/node_modules/**"  # In case any JS tooling is added
+  # Package names to never upgrade (add specific packages here if needed)
+  packages: []
+  # Example packages you might want to pin:
+  # - "sqlalchemy"  # Major version changes require code migration
+  # - "pydantic"    # v1 to v2 is a breaking change
+
+# AI agent for automated fix attempts
+agent:
+  enabled: true
+  provider: anthropic  # Options: "anthropic" or "bedrock"
+  model: claude-sonnet-4-5
+  maxFixAttempts: 3
+  timeout: 30m
+
+# Build validation after upgrades
+validation:
+  enabled: true
+  # Validation runs from repo root; commands should work from there
+  commands:
+    # Poetry service
+    - "cd poetry-service && poetry install --quiet && poetry run pytest -q"
+    # uv service
+    - "cd uv-service && uv sync --quiet && uv run pytest -q"
+    # pip service
+    - "cd pip-service && pip install -q -r requirements.txt -r requirements-dev.txt && pytest -q"
+  timeout: 10m
+
+# Pull request settings
+pr:
+  labels:
+    - dependencies
+    - automated
+    - agp
+  draft: false
+  titleTemplate: "chore(deps): {{.GroupName}}"
+  branchTemplate: "agp/{{.GroupID}}"
+  # Add reviewers if you want automatic review requests
+  reviewers: []
+  # reviewers:
+  #   - your-github-username
+
+# Rate limiting to prevent PR spam
+limits:
+  maxOpenPRs: 5
+  maxPRsPerRun: 10
+  waitPeriod:
+    major: 7d   # Wait 7 days before creating PR for major upgrades
+    minor: 3d   # Wait 3 days for minor upgrades
+    patch: 1d   # Wait 1 day for patch upgrades
+
+# Auto-merge settings (disabled by default)
+automerge:
+  enabled: false
+  method: squash  # Options: "squash", "merge", or "rebase"
+  # Enable with caution - only for trusted dependency updates
+  # enabled: true
+  # method: squash
+
+# How to group updates into PRs
+grouping:
+  strategy: individual  # Options: "individual", "ecosystem", "project", or "all"
+  # Use "individual" for most granular control
+  # Use "ecosystem" to group by package manager (pip, poetry, uv)
+  # Use "project" to group all updates per monorepo project
+  rules: []
+  # Example custom grouping rule:
+  # rules:
+  #   - name: "security-patches"
+  #     match:
+  #       severity: ["critical", "high"]
+  #     strategy: "all"
+
+# Monorepo: per-project configuration
+projects:
+  poetry-service:
+    path: poetry-service
+    ecosystem: pip  # Poetry is part of the pip/Python ecosystem
+    validation:
+      enabled: true
+      commands:
+        - "poetry install --quiet && poetry run pytest -q"
+
+  uv-service:
+    path: uv-service
+    ecosystem: pip
+    validation:
+      enabled: true
+      commands:
+        - "uv sync --quiet && uv run pytest -q"
+
+  pip-service:
+    path: pip-service
+    ecosystem: pip
+    validation:
+      enabled: true
+      commands:
+        - "pip install -q -r requirements.txt -r requirements-dev.txt && pytest -q"
