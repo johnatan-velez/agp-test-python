@@ -106,7 +106,7 @@ jobs:
           # AWS_BEDROCK_REGION: us-east-1  # Uncomment if using AWS Bedrock instead
           # Guide API token for dashboard tracking
           AGP_API_TOKEN: ${{ secrets.AGP_API_TOKEN }}
-          AGP_API_URL: https://api.guide.sonatype.com
+          AGP_API_URL: https://api.guide-dev.sonatype.dev
           # GitHub token - using default since organization doesn't restrict it
           GITHUB_TOKEN: ${{ github.token }}
           # GITHUB_TOKEN: ${{ secrets.AGP_GITHUB_TOKEN }}  # Uncomment if default token is restricted
