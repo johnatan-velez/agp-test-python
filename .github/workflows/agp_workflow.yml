@@ -73,6 +73,7 @@ jobs:
           dry-run: 'false'
           verbose: ${{ inputs.verbose || 'false' }}
           # Docker registry configuration (always active for Sonatype container images)
+          image-tag: python-ecosystem-support-agp-1-af1d5de6
           docker-registry: sonatype.repo.sonatype.app/docker-all
           docker-username: ${{ secrets.DOCKER_USERNAME }}  # Uncomment for private Docker registry
           docker-password: ${{ secrets.DOCKER_PASSWORD }}  # Uncomment for private Docker registry
