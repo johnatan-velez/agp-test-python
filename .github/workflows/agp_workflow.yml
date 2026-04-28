@@ -74,8 +74,8 @@ jobs:
           verbose: ${{ inputs.verbose || 'false' }}
           # Docker registry configuration (always active for Sonatype container images)
           docker-registry: sonatype.repo.sonatype.app/docker-all
-          # docker-username: ${{ secrets.DOCKER_USERNAME }}  # Uncomment for private Docker registry
-          # docker-password: ${{ secrets.DOCKER_PASSWORD }}  # Uncomment for private Docker registry
+          docker-username: ${{ secrets.DOCKER_USERNAME }}  # Uncomment for private Docker registry
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}  # Uncomment for private Docker registry
           # npmrc-content: ${{ secrets.NPMRC_CONTENT }}  # Uncomment for npm projects with private registry
           # Maven settings – uncomment if using private Maven repositories
           # maven-settings-xml: |
